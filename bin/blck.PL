@@ -1,4 +1,5 @@
 use Config;
+# vim: set sw=4 ts=4 si et:
 use File::Basename qw(basename dirname);
 chdir(dirname($0));
 ($file = basename($0)) =~ s/\.PL$//;
@@ -10,10 +11,15 @@ chmod(0755, $file);
 print "Extracting $file (with variable substitutions)\n";
 
 my $VERSION="unknown";
-if (-r "../Makefile"){ # from makefile
-	$VERSION=`grep '^VERSION *= ' ../Makefile`;
-	chomp($VERSION);
-	$VERSION=~s/VERSION *= *//;
+if (-r "../Tagreader.pm"){ # get version
+    open(F,"../Tagreader.pm")||die;
+    while(<F>){
+        if (/\$VERSION *= *(.+)/){
+            $VERSION=$1;
+            $VERSION=~s/[^\.\d]//g;
+        }
+    }
+    close F;
 }
 
 print OUT "$Config{'startperl'} -w
@@ -25,7 +31,7 @@ print OUT <<'!NO!SUBS!';
 # Copyright: GPL, Author: Guido Socher
 #
 use strict;
-use vars qw($opt_a $opt_w $opt_A $opt_h);
+use vars qw($opt_a $opt_r $opt_W $opt_A $opt_h);
 use Getopt::Std;
 use HTML::Tagreader;
 #
@@ -35,7 +41,7 @@ sub checkonefile_nameonly($);
 sub dirname($);
 sub linktype($);
 #
-getopts("aAhw:")||die "ERROR: No such option. -h for help.\n";
+getopts("aAhr:W")||die "ERROR: No such option. -h for help.\n";
 help() if ($opt_h);
 help() unless ($ARGV[0]);
 
@@ -83,7 +89,7 @@ sub checkonefile_nameonly($){
 
     my $p=new HTML::Tagreader "$file";
     $checkedfiles{"$file"}=1;
-    while(@tag = $p->gettag()){
+    while(@tag = $p->gettag(!$opt_W)){
         # read out the tags, note something like: 
         # <a name="xxxx" href="...."> .... </a>
         # is valid
@@ -114,7 +120,7 @@ sub checkonefile($$){
 
     my $p=new HTML::Tagreader "$file";
     $checkedfiles{"$file"}=1;
-    while(@tag = $p->gettag()){
+    while(@tag = $p->gettag(!$opt_W)){
         # read out the tags, note something like: 
         # <a name="xxxx" href="...."> .... </a>
         # is valid
@@ -144,7 +150,7 @@ sub checkonefile($$){
             $path=$1;
             $ltype=linktype($path);
         }else{
-            print "$file:$tag[1]: ERROR, invalid link $tag[0]\n";
+            print "$file:$tag[1]: ERROR, invalid link $tag[0]\n" unless($opt_W);
         }
         $origpath=$path;
         #---
@@ -153,8 +159,8 @@ sub checkonefile($$){
         }else{
             $count{'abs'}++;
         }
-        if ($opt_w && $ltype eq "proto://"){
-            if ($path=~/$opt_w/io){
+        if ($opt_r && $ltype eq "proto://"){
+            if ($path=~/$opt_r/io){
                 print "$file:$line: warning abs link to \"$path\"\n";
             }
         }
@@ -173,12 +179,16 @@ sub checkonefile($$){
             push(@checklater,[$file.$path,"$file:$line: reference to non existing anchor $tagtype=\"$path\"\n"]) if ($later);
             next;
         }
+        if ($ltype eq 'absanchor'){
+            next;
+        }
         $dir=dirname($file);
         if ($path=~/^(.+)#/){
             $ckpath=$1;
+            next if ($ltype ne 'rel');
             if ( -f "$dir/$ckpath" ){
-		# ./index.html should be index.html
-		$path=~s/\.\///;
+                # ./index.html should be index.html
+                $path=~s/\.\///;
                 # add path and possible error message:
                 push(@checklater,["$dir/$path","$file:$line: reference to non existing anchor $tagtype=\"$path\"\n"]) if ($later);
             }else{
@@ -187,7 +197,7 @@ sub checkonefile($$){
             next;
         }
         if ($ltype eq 'file:'){
-            print "$file:$line: warning link with \"file:$path\"\n";
+            print "$file:$line: warning link with \"file:$path\"\n" unless($opt_W);
             next;
         }
         # handle cgi's:
@@ -214,13 +224,13 @@ sub dirname($){
 #----------------------------------
 # find out if this is an abs link (proto://, file:, rel, /absfile)
 sub linktype($){
-    my $pathstr=shift;
+    my $pathstr=shift; # no quotes must be arround the path
     if ($pathstr=~ m=^/=){
         return('/absfile');
     }elsif ($pathstr=~ m=^\.=){
         return('rel'); # may still contain a ref to named anchor
-    }elsif ($pathstr=~ m=^#=){
-        return('anchor');
+    }elsif ($pathstr=~ m=^\#=){
+        return('anchor'); # relative anchor in the same file!
     }elsif ($pathstr=~ m=^file:=i){
         return('file:');
     }elsif ($pathstr=~ m=^\w+://=i){
@@ -235,7 +245,7 @@ sub linktype($){
 sub help(){
 print "blck -- check for broken relative links in html pages
 
-USAGE: blck [-Ah] [-w regexp] html-files
+USAGE: blck [-AhW] [-r regexp] html-files
 
 blck searches html files for broken links. I searches
 only the relative links and does not need a web-server. As
@@ -268,10 +278,12 @@ OPTIONS: -h this help
          do not check for any broken links. This output can be
          processed further with httpcheck.
          -A do not open any other files than the files given on the
-         -w warn about absolut links matching the given perl regexp
+         -r warn about absolut links matching the given perl regexp
          E.g: -w \'www.linuxfocus.org|chem.pitt.edu\'
          This match is not case sensitive and only applied to links
          starting with proto:// (=absolut links).
+         -W do not print warnings about html errors (not terminated
+         tags etc ...).
 
 EXAMPLE
        Check links in html files in the web server root directory
@@ -305,7 +317,7 @@ blck -- check for broken relative links in html pages
 
 =head1 SYNOPSIS
 
-    blck [-Ah] [-w regexp] html-files
+    blck [-AhW] [-r regexp] html-files
 
 =head1 DESCRIPTION
 
@@ -345,11 +357,13 @@ processed further with httpcheck.
 
 -A do not open any other files than the files given on the
 
--w warn about absolut links matching the given perl regexp
+-r warn about absolut links matching the given perl regexp
 E.g: -w \'www.linuxfocus.org|chem.pitt.edu\'
 This match is not case sensitive and only applied to links
 starting with proto:// (=absolut links).
 
+-W do not print warnings about html errors (not terminated
+tags etc ...).
 
 =head1 EXAMPLE
 

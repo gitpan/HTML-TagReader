@@ -11,10 +11,15 @@ chmod(0755, $file);
 print "Extracting $file (with variable substitutions)\n";
 
 my $VERSION="unknown";
-if (-r "../Makefile"){ # from makefile
-	$VERSION=`grep '^VERSION *= ' ../Makefile`;
-	chomp($VERSION);
-	$VERSION=~s/VERSION *= *//;
+if (-r "../Tagreader.pm"){ # get version
+    open(F,"../Tagreader.pm")||die;
+    while(<F>){
+        if (/\$VERSION *= *(.+)/){
+            $VERSION=$1;
+            $VERSION=~s/[^\.\d]//g;
+        }
+    }
+    close F;
 }
 
 print OUT "$Config{'startperl'} -w
@@ -40,7 +45,7 @@ getopts("hv:i:")||die "ERROR: No such option. -h for help.\n";
 help() if ($opt_h);
 help() unless ($ARGV[0]);
 
-my @possibilities= qw(index.html index.htm index.shtml default.htm index.php3 index.wml);
+my @possibilities= qw(index.html index.htm index.shtml default.htm index.php3 index.php index.wml);
 my $verbous=1; # default verbosity
 my $changecount=0;
 if ($opt_v ){
@@ -193,13 +198,13 @@ sub dirname($){
 #----------------------------------
 # find out if this is an abs link (proto://, file:, rel, /absfile)
 sub linktype($){
-    my $pathstr=shift;
+    my $pathstr=shift; # no quotes must be arround the path
     if ($pathstr=~ m=^/=){
         return('/absfile');
     }elsif ($pathstr=~ m=^\.=){
         return('rel'); # may still contain a ref to named anchor
-    }elsif ($pathstr=~ m=^#=){
-        return('anchor');
+    }elsif ($pathstr=~ m=^\#=){
+        return('anchor'); # relative anchor in the same file!
     }elsif ($pathstr=~ m=^file:=i){
         return('file:');
     }elsif ($pathstr=~ m=^\w+://=i){
@@ -216,21 +221,25 @@ print "xlnk -- expand links on directories
 
 USAGE: xlnk [-h] [-v level] [-i fname-list] html-files
 
-xlnk opens all files provided on the command line and
+xlnk opens all files listed on the command line and
 searches for realtive links on directories. These links
-are expanded to point to the default file (e.g index.html)
+are expanded to point to the default file (e.g index.html).
 
 This is useful if you want to click through html files without
 a web-server.
 
 File access permissions are preserved.
 
-OPTIONS: -h this help
-         -i index list. Comma seperated list of files to search
-         for. Default is:
-         index.html,index.htm,index.shtml,default.htm,index.php3,index.wml
-         -v verbosity. Number between 0-3. Print information on what is done.
-         Default is 1.
+OPTIONS: 
+     -h this help
+
+     -i index list. Comma seperated list of files to search
+     for. Default is:
+     index.html,index.htm,index.shtml,default.htm,index.php3,
+     index.php,index.wml
+
+     -v verbosity. Number between 0-3. Print information on what is done.
+     Default is 1.
 
 version $VERSION
          \n";
@@ -248,9 +257,9 @@ xlnk -- process html files and expand links on directories
 
 =head1 DESCRIPTION
 
-xlnk opens all files provided on the command line and
+xlnk opens all files listed on the command line and
 searches for realtive links on directories. These links
-are expanded to point to the default file (e.g index.html)
+are expanded to point to the default file (e.g index.html).
 
 This is useful if you want to click through html files without
 a web-server.
@@ -263,17 +272,19 @@ File access permissions are preserved.
 
 -i index list. Comma seperated list of files to search
 for. Default is:
-index.html,index.htm,index.shtml,default.htm,index.php3,index.wml
+index.html,index.htm,index.shtml,default.htm,index.php3,
+index.php,index.wml
 
 -v verbosity. Number between 0-3. Print information on what is done.
 Default is 1.
 
 =head1 EXAMPLE
 
-blnkcheck `find . -name '*.htm*'`
+xlnk `find . -name '*.htm*'`
 
 will seach for all html files in this directroy and subdirectories
-and modify the html files such that all links point to files.
+and modify the html files such that all links point to the default index
+files.
 E.g href="../" would become href="../index.html" if index.html exists.
 
 =head1 AUTHOR

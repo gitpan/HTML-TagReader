@@ -8,14 +8,17 @@
 #include <strings.h>
 #include <ctype.h>
 
-#define TAGREADER_MAX_TAGLEN 10240
+/* tags longer than TAGREADER_MAX_TAGLEN produce a warning about
+* not terminated tags */
+#define TAGREADER_MAX_TAGLEN 500
+#define BUFFLEN 7000
 #define TAGREADER_TAGTYPELEN 20
 
 typedef struct trstuct{
 	char *filename;
 	int fileline;
 	int tagline;
-	char buffer[TAGREADER_MAX_TAGLEN + 1];
+	char buffer[BUFFLEN + 1];
 	char tagtype[TAGREADER_TAGTYPELEN + 1];
 	FILE *fd;
 } *HTML__Tagreader;
@@ -66,9 +69,9 @@ CODE:
 	Safefree(self);
 
 void
-tr_gettag(self,showerrors=1)
+tr_gettag(self,showerrors)
 	HTML::Tagreader self
-	int showerrors
+	SV *showerrors
 PREINIT:
 	int bufpos;
 	char ch;
@@ -90,8 +93,8 @@ PPCODE:
 			ch=chn;
 			continue;
 		}
-		if (bufpos > TAGREADER_MAX_TAGLEN - 2){
-			if (showerrors){
+		if (bufpos > BUFFLEN - 2 || bufpos > TAGREADER_MAX_TAGLEN){
+			if (SvTRUE(showerrors)){
 				fprintf(stderr,"%s:%d: ERROR, tag not terminated or too long.\n",self->filename,self->tagline);
 			}
 			state=0;
@@ -120,7 +123,7 @@ PPCODE:
 					self->buffer[bufpos]=ch;bufpos++;
 					state=1;
 				}else{
-					if (showerrors){
+					if (SvTRUE(showerrors)){
 						fprintf(stderr,"%s:%d: ERROR, single \'<\' should be written as &gt;\n",self->filename,self->fileline);
 					}
 				}
@@ -140,7 +143,7 @@ PPCODE:
 			}
 			if(ch=='<'){
 				/* the tag that we were reading was not terminated but instead we ge a new opening */
-				if (showerrors){
+				if (SvTRUE(showerrors)){
 					fprintf(stderr,"%s:%d: ERROR, \'>\' inside a tag should be written as &lt;\n",self->filename,self->tagline);
 				}
 				state=1;
@@ -201,9 +204,9 @@ PPCODE:
 	}
 
 void
-tr_getbytoken(self,showerrors=1)
+tr_getbytoken(self,showerrors)
 	HTML::Tagreader self
-	int showerrors
+	SV *showerrors
 PREINIT:
 	int bufpos;
 	char ch;
@@ -241,7 +244,7 @@ PPCODE:
 					state=1; /* we will be reading a tag */
 				}else{
 					state=2; /* we will be reading a text/paragraph */
-					if (showerrors){
+					if (SvTRUE(showerrors)){
 						fprintf(stderr,"%s:%d: ERROR, single \'<\' should be written as &gt;\n",self->filename,self->fileline);
 					}
 				}
@@ -262,8 +265,11 @@ PPCODE:
 					typeposdone=1; /* mark end */
 				}
 			}
-			if (ch=='<' && showerrors) {
+			if (ch=='<' && SvTRUE(showerrors)) {
 				fprintf(stderr,"%s:%d: ERROR, single \'<\' or tag starting at line %d not terminated\n",self->filename,self->fileline,self->tagline);
+			}
+			if (SvTRUE(showerrors) && bufpos > TAGREADER_MAX_TAGLEN){
+				fprintf(stderr,"%s:%d: ERROR, tag not terminated or too long.\n",self->filename,self->tagline);
 			}
 			if (ch=='>') {
 				/* done reading this tag */
@@ -294,7 +300,7 @@ PPCODE:
 					state=3;
 				}else{
 					state=2; /* we will be reading a text/paragraph */
-					if (showerrors){
+					if (SvTRUE(showerrors)){
 						fprintf(stderr,"%s:%d: ERROR, single \'<\' should be written as &gt;\n",self->filename,self->fileline);
 					}
 				}
@@ -322,8 +328,8 @@ PPCODE:
 		}
 		/* shift this and next char */
 		ch=chn;
-		if (bufpos > TAGREADER_MAX_TAGLEN - 3){
-			if (showerrors){
+		if (bufpos > BUFFLEN - 3){
+			if (SvTRUE(showerrors)){
 				fprintf(stderr,"%s:%d: ERROR, too long paragraph or tag.\n",self->filename,self->tagline);
 			}
 			state=3; /* jump out of here */

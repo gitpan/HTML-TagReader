@@ -11,10 +11,15 @@ chmod(0755, $file);
 print "Extracting $file (with variable substitutions)\n";
 
 my $VERSION="unknown";
-if (-r "../Makefile"){ # from makefile
-	$VERSION=`grep '^VERSION *= ' ../Makefile`;
-	chomp($VERSION);
-	$VERSION=~s/VERSION *= *//;
+if (-r "../Tagreader.pm"){ # get version
+    open(F,"../Tagreader.pm")||die;
+    while(<F>){
+        if (/\$VERSION *= *(.+)/){
+            $VERSION=$1;
+            $VERSION=~s/[^\.\d]//g;
+        }
+    }
+    close F;
 }
 
 print OUT "$Config{'startperl'} -w
@@ -27,7 +32,7 @@ print OUT <<'!NO!SUBS!';
 # Copyright: GPL, Author: Guido Socher
 #
 use strict;
-use vars qw($opt_l $opt_a $opt_h $opt_A);
+use vars qw($opt_l $opt_a $opt_h $opt_A $opt_W);
 use Getopt::Std;
 use HTML::Tagreader;
 #
@@ -35,7 +40,7 @@ sub help();
 sub showonefile($);
 sub linktype($);
 #
-getopts("haAl")||die "ERROR: No such option. -h for help.\n";
+getopts("haAlW")||die "ERROR: No such option. -h for help.\n";
 help() if ($opt_h);
 help() unless ($ARGV[0]);
 if ($opt_a){
@@ -63,7 +68,7 @@ sub showonefile($){
     $waitclosetag=0;
     $waitcount=0;
     $atag="";
-    while(@tag = $p->getbytoken(1)){
+    while(@tag = $p->getbytoken(!$opt_W)){
         # read out the tags, note something like: 
         # <a name="xxxx" href="...."> .... </a>
         # is valid
@@ -86,7 +91,7 @@ sub showonefile($){
                 next;
             }
             if ($waitcount > 10){
-                print STDERR "$infile:$aline: Warning \"<a ...\" starting not terminated\n";
+                print STDERR "$infile:$aline: Warning \"<a ...\" starting not terminated\n" unless($opt_W);
                 $waitclosetag=0;
                 $waitcount=0;
                 if ($opt_l){
@@ -113,7 +118,7 @@ sub showonefile($){
             }
             if ($tag[1] eq "a" && $opt_a ){
                 if ($waitclosetag){
-                    print STDERR "Warning: $infile:$line: \"<a ...\" starting at line $aline not terminated\n";
+                    print STDERR "Warning: $infile:$line: \"<a ...\" starting at line $aline not terminated\n" unless($opt_W);
                     print "$infile:$aline: $atag\n";
                 }
                 # wait for closing "</a>"
@@ -130,20 +135,20 @@ sub showonefile($){
                 }
             }
         }else{
-            print STDERR "$infile:$line: Warning, broken link $tag[0]\n";
+            print STDERR "$infile:$line: Warning, broken link $tag[0]\n" unless($opt_W);
         }
     }
 }
 #----------------------------------
 # find out if this is an abs link (proto://, file:, rel, /absfile)
 sub linktype($){
-    my $pathstr=shift;
+    my $pathstr=shift; # no quotes must be arround the path
     if ($pathstr=~ m=^/=){
         return('/absfile');
     }elsif ($pathstr=~ m=^\.=){
         return('rel'); # may still contain a ref to named anchor
-    }elsif ($pathstr=~ m=^#=){
-        return('anchor');
+    }elsif ($pathstr=~ m=^\#=){
+        return('anchor'); # relative anchor in the same file!
     }elsif ($pathstr=~ m=^file:=i){
         return('file:');
     }elsif ($pathstr=~ m=^\w+://=i){
@@ -158,7 +163,7 @@ sub linktype($){
 sub help(){
 print "llnk -- list links in html files
 
-USAGE: llnk [-h] [-Aal] html-files
+USAGE: llnk [-h] [-AalW] html-files
 
 Without option -A llnk will list only relative links.
 The idea of this program is that you run 
@@ -166,13 +171,16 @@ tar cvf pages.tar `llnk index.html something.html`
 in order to include files that are referenced by index.html and
 something.html. 
 
+With the option -A you can use llnk to inspect the links in
+html files.
+
 OPTIONS: 
          -h this help
 
          -a list for <a href=...> tags everything until </a>
-         This option implies (-l). You can not use this in combination
-         with tar to pack files together. This is more to look
-         at the links of a webpage.
+         This option implies (-l). You can not use this option
+         in combination with tar to pack files together. This is 
+         more to look at the links of a webpage.
 
          -A list all href=...,  src=..., and background=... tags
          whether they are relative or not.
@@ -184,6 +192,15 @@ OPTIONS:
          links. You can not use this in combination with tar to pack 
          files together.
 
+         -W do not print warnings about html errors (not terminated
+         tags etc ...).
+
+EXAMPLE:
+ pack a tar file:
+ tar cvf pages.tar `llnk index.html something.html`
+
+ inspect a html file:
+ llnk -Al something.html
 
 version $VERSION
          \n";
@@ -197,7 +214,7 @@ llnk -- list links in html files
 
 =head1 SYNOPSIS
 
-USAGE: llnk [-h] [-Aal] html-files
+USAGE: llnk [-h] [-AalW] html-files
 
 =head1 DESCRIPTION
 
@@ -207,14 +224,17 @@ tar cvf pages.tar `llnk index.html something.html`
 in order to include files that are referenced by index.html and
 something.html. 
 
+With the option -A you can use llnk to inspect the links in
+html files.
+
 =head1 OPTIONS
 
 -h this help
 
 -a list for <a href=...> tags everything until </a>
-This option implies (-l). You can not use this in combination
-with tar to pack files together. This is more to look
-at the links of a webpage.
+This option implies (-l). You can not use this option
+in combination with tar to pack files together. This is 
+more to look at the links of a web page.
 
 -A list all href=...,  src=..., and background=... tags
 whether they are relative or not.
@@ -225,6 +245,17 @@ If -l is given then the file names from the command line are
 not included unless they appear in one of the files as
 links. You can not use this in combination with tar to pack 
 files together.
+
+-W do not print warnings about html errors (not terminated
+tags etc ...).
+
+=head1 EXAMPLE
+
+pack a tar file:
+tar cvf pages.tar `llnk index.html something.html`
+
+inspect a html file:
+llnk -Al something.html
 
 =head1 AUTHOR
 

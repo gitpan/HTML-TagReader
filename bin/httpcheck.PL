@@ -11,16 +11,20 @@ chmod(0755, $file);
 print "Extracting $file (with variable substitutions)\n";
 
 my $VERSION="unknown";
-if (-r "../Makefile"){ # from makefile
-	$VERSION=`grep '^VERSION *= ' ../Makefile`;
-	chomp($VERSION);
-	$VERSION=~s/VERSION *= *//;
+if (-r "../Tagreader.pm"){ # get version
+    open(F,"../Tagreader.pm")||die;
+    while(<F>){
+        if (/\$VERSION *= *(.+)/){
+            $VERSION=$1;
+            $VERSION=~s/[^\.\d]//g;
+        }
+    }
+    close F;
 }
 
 print OUT "$Config{'startperl'} -w
 my \$VERSION = \"$VERSION\";
 ";
-
 
 print OUT <<'!NO!SUBS!';
 # vim: set sw=4 ts=4 si et: 
@@ -338,8 +342,14 @@ If no URL is given then httpcheck reads output from
 \"blck -a\" on stdin and processes it. 
 Note: This program does only http type of protocol checks. It can e.g not
 check https or ftp.
-EXAMPLES: httpcheck http://www.oche.de/
-          blck -a *.html |  httpcheck -E
+
+EXAMPLES: 
+ check a single url:
+ httpcheck http://www.oche.de/
+
+ check many URLs extracted with blck
+ from web pages:
+ blck -a *.html |  httpcheck -E
 
 You may set the environment variable HTTP_PROXY and NO_PROXY or
 http_proxy and no_proxy to use a proxy. If both are set then the
@@ -382,8 +392,16 @@ If no URL is given then httpcheck reads output from
 Note: This program does only http type of protocol checks. It can e.g not
 check https or ftp.
 
-EXAMPLES: httpcheck http://www.oche.de/
-          blck -a *.html |  httpcheck -E
+=head1 EXAMPLES
+
+check a single url:
+httpcheck http://www.oche.de/
+
+check many URLs extracted with blck
+from web pages:
+blck -a *.html |  httpcheck -E
+
+=head1 ENVIRONMENT
 
 You may set the environment variable HTTP_PROXY and NO_PROXY or
 http_proxy and no_proxy to use a proxy. If both are set then the
@@ -392,17 +410,9 @@ The format of the http_proxy variable looks like "http://www-proxy:8080/"
 and the no_proxy is a comma or space seperated list of servers or domains
 for which a direct connection should be made.
 
-=head1 NOTES
-
-If you are interessted in a link checker to check links only via the
-web-server then this is not the right program for you. Other programs
-like e.g curl (http://curl.haxx.nu/ or http://curl.haxx.se/) can be used
-if you want to check your web-pages only remotely via a web server. curl
-comes with a dead link checker called checklinks.pl.
-
 =head1 AUTHOR
 
-xlnk is part of the Tagreader package and was written by
+httpcheck is part of the Tagreader package and was written by
 Guido Socher [guido(at)linuxfocus.org]
 
 =cut

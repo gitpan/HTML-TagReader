@@ -6,7 +6,7 @@ use vars qw($VERSION @ISA);
 require DynaLoader;
 
 @ISA = qw(DynaLoader);
-$VERSION = '0.04';
+$VERSION = '0.05';
 
 bootstrap HTML::Tagreader $VERSION;
 
@@ -21,31 +21,29 @@ Tagreader - Perl extension module for reading html/sgml/xml tags
 =head1 SYNOPSIS
 
   use HTML::Tagreader;
+  # open then file and get an obj-ref:
   my $p=new HTML::Tagreader "filename";
-  $showerrors=1; # default=1 set to zero to skip errors
+
+  # set to zero or undef to omit warnings about html error:
+  $showerrors=1; 
+
+  # get only the tags:
   my $tag = $p->gettag($showerrors);
     # or
-  my ($tag,$line) = $p->gettag($showerrors);
-    # or 
-  my $tag = $p->gettag();
-    # or
-  my ($tag,$tagtype,$line) = $p->gettag();
+  my ($tag,$linenumber) = $p->gettag($showerrors);
 
+  # get the entire file split into tags and text parts:
   my $tag = $p->getbytoken($showerrors);
     # or
-  my ($tag,$tagtype,$line) = $p->getbytoken($showerrors);
-    # or 
-  my $tag = $p->getbytoken();
-    # or
-  my ($tag,$tagtype,$line) = $p->getbytoken();
+  my ($tag,$tagtype,$linenumber) = $p->getbytoken($showerrors);
 
 =head1 DESCRIPTION
 
 The module implements a fast and small object oriented way of
-reading any kind of html/sgml/xml tags.
+processing any kind of html/sgml/xml files by tag.
 
-This module is similar to while(<>) but instead of reading lines 
-it reads tags or tags and text.
+The getbytoken(0) is similar to while(<>) but instead of reading lines 
+it reads tags or tags and text. 
 
 Here is a program that list all href tags
 in a html file together with it line numbers:
@@ -53,7 +51,7 @@ in a html file together with it line numbers:
 	use Tagreader;
 	my $p=new Tagreader "file.html";
 	my @tag;
-	while(@tag = $p->gettag()){
+	while(@tag = $p->gettag(1)){
 		if ($tag[0]=~/ href ?=/i){
 			# remove optional space before the equal sign:
 			$tag[0]=~s/ ?= ?/=/g;
@@ -67,18 +65,18 @@ wise:
 	use Tagreader;
 	my $p=new Tagreader "file.html";
 	my @tag;
-	while(@tag = $p->getbytoken()){
+	while(@tag = $p->getbytoken(1)){
 		if ($tag[1] eq ""){
-			print "line: $tag[2]: not a tag (some text), \"$tag[0]\"\n";
+			print "line: $tag[2]: not a tag (some text), \"$tag[0]\"\n\n";
 		}else{
-			print "line: $tag[2]: is a tag, $tag[0]\n";
+			print "line: $tag[2]: is a tag, $tag[0]\n\n";
 		}
 	}
 
 =head2 new HTML::Tagreader $file;
 
 Returns a reference to a Tagreader object. This reference can
-be used with gettag() to read the next tag.
+be used with gettag() or getbytoken() to read the next tag.
 
 =head2 gettag($showerrors);
 
@@ -94,14 +92,13 @@ single space otherwise upper and lower case, quotes etc are as in the
 original file. The line numbers are those where the tag
 starts.
 
-Optionally you may provide 0 or 1 as an argument to gettag. 
+You must provide 0 (or undef) or 1 as an argument to gettag. 
 If 0 is provided then gettag will not print any errors if it finds
 a syntax error in the html/sgml/xml code.
 
 Currently only the following error cases are implemented:
 
-- A starting '<' was found but no closing '>' after 10k characters
-later
+- A starting '<' was found but no closing '>' after 300 characters
 
 - A single '<' was found which was not followed by [!/a-zA-Z]. Such
 a '<' should be written as &lt;
@@ -122,57 +119,28 @@ tagtype is always lower case. The tagtype is the string starting
 the tag such as "a" in <a href=""> or "!--" in <!-- comment -->.
 tagtype is empty if this is not a tag (normal text or newline).
 
-Optionally you may provide 0 or 1 as an argument to getbytoken. 
+You must provide 0 (or undef) or 1 as an argument to getbytoken. 
 If 0 is provided then gettag will not print any errors if it finds
 a syntax error in the html/sgml/xml code.
 
 Currently only the following error cases are implemented:
 
-- A starting '<' was found but no closing '>' after 10k characters
-later
+- A starting '<' was found but no closing '>' after 300 characters
 
 - A single '<' was found which was not followed by [!/a-zA-Z]. Such
 a '<' should be written as &lt;
 
 =head2 Limitations
 
-No text must be longer than 10k without some kind
+No text must be longer than 7k without some kind
 of tag inbetween.
 
-This module was primarily created to implement an efficient
-broken link check program but it can of course be used for other
-things.
-
 If you need a more sophisticated interface you might want to take a look at
-HTML::Parser
-
-=head2 HTML::Tagreader installation
-
-The latest version of HTML::Tagreader is available from
-http://linuxfocus.org/~eedgus/
-
-Once you have downloaded it, HTML::Tagreader installs easily using the
-make commands as shown below.
-
-      > perl Makefile.PL
-      > make
-      > make test
-      > make install
-
-
-Tagreader comes with the following application programs
-which make use of the Tagreader module:
-blck -- check for broken relative links in html pages
-llnk -- list links in html files
-xlnk -- expand links on directories
-
-In addition to the above the program httpcheck is included
-which is a post processor for blck. httpcheck enables you to
-use blck also to check absolute links of the type "http://".
+HTML::Parser. HTML:Tagreader is fast generic and straight forward to use.
 
 =head1 COPYRIGHT
 
-Copyright (c) Guido Socher <guido(at)linuxfocus.org>
+Copyright (c) Guido Socher [guido(at)linuxfocus.org]
 
 This program is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself.

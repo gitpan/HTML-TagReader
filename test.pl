@@ -35,7 +35,7 @@ $i++;
 
 
 my @tag;
-@tag = $ptr->gettag();
+@tag = $ptr->gettag(1);
 if ($tag[1] == 3){
 	print "ok $i\n";
 }else{
@@ -53,7 +53,7 @@ $i++;
 
 
 
-@tag = $ptr->gettag();
+@tag = $ptr->gettag(1);
 #print "dbg:$tag[0]:dbg\n";
 if (scalar @tag == 0){
 	print "ok $i\n";
@@ -63,7 +63,7 @@ if (scalar @tag == 0){
 $i++;
 
 
-$tmp=$ptr->gettag();
+$tmp=$ptr->gettag(1);
 #print "dbg:$tmp:dbg\n";
 if ($tmp eq ""){
 	print "ok $i\n";
@@ -85,7 +85,7 @@ close OUT;
 
 my $p=new HTML::Tagreader "/tmp/pltest_getbytoken.$$";
 #7
-@tag = $p->getbytoken();
+@tag = $p->getbytoken("x");
 if ($tag[0] eq "<bla a=x>" && $tag[1] eq "bla" && $tag[2] == 1){
 	print "ok $i\n";
 }else{
@@ -101,7 +101,7 @@ if ($tmp eq " < "){
 }
 $i++;
 
-@tag = $p->getbytoken();
+@tag = $p->getbytoken(1);
 if ($tag[0] eq "<tag \t\n1>" && $tag[1] eq "tag" && $tag[2] == 1){
 	print "ok $i\n";
 }else{
@@ -109,8 +109,8 @@ if ($tag[0] eq "<tag \t\n1>" && $tag[1] eq "tag" && $tag[2] == 1){
 }
 $i++;
 
-@tag = $p->getbytoken();
-@tag = $p->getbytoken();
+@tag = $p->getbytoken(1);
+@tag = $p->getbytoken(1);
 if ($tag[0] eq "<!DOCTYPE xx>" && $tag[1] eq "!doctype" && $tag[2] == 3){
 	print "ok $i\n";
 }else{
@@ -118,8 +118,8 @@ if ($tag[0] eq "<!DOCTYPE xx>" && $tag[1] eq "!doctype" && $tag[2] == 3){
 }
 $i++;
 
-@tag = $p->getbytoken();
-@tag = $p->getbytoken();
+@tag = $p->getbytoken(1);
+@tag = $p->getbytoken(1);
 if ($tag[0] eq "The web" && $tag[1] eq "" && $tag[2] == 3){
 	print "ok $i\n";
 }else{
@@ -127,7 +127,7 @@ if ($tag[0] eq "The web" && $tag[1] eq "" && $tag[2] == 3){
 }
 $i++;
 
-@tag = $p->getbytoken();
+@tag = $p->getbytoken(1);
 if ($tag[0] eq "</TITLE>" && $tag[1] eq "/title" && $tag[2] == 3){
 	print "ok $i\n";
 }else{
@@ -135,7 +135,7 @@ if ($tag[0] eq "</TITLE>" && $tag[1] eq "/title" && $tag[2] == 3){
 }
 $i++;
 
-@tag = $p->getbytoken();
+@tag = $p->getbytoken(1);
 if ($tag[0] eq "\n" && $tag[1] eq "" && $tag[2] == 3){
 	print "ok $i\n";
 }else{
@@ -143,7 +143,7 @@ if ($tag[0] eq "\n" && $tag[1] eq "" && $tag[2] == 3){
 }
 $i++;
 
-@tag = $p->getbytoken();
+@tag = $p->getbytoken(1);
 if ($tag[0] eq "<a href=\"http://linuxfocus.org\">" && $tag[1] eq "a" && $tag[2] == 4){
 	print "ok $i\n";
 }else{
@@ -151,7 +151,7 @@ if ($tag[0] eq "<a href=\"http://linuxfocus.org\">" && $tag[1] eq "a" && $tag[2]
 }
 $i++;
 
-@tag = $p->getbytoken();
+@tag = $p->getbytoken(1);
 if ($tag[0] eq "\n" && $tag[1] eq "" && $tag[2] == 4){
 	print "ok $i\n";
 }else{
@@ -159,7 +159,7 @@ if ($tag[0] eq "\n" && $tag[1] eq "" && $tag[2] == 4){
 }
 $i++;
 
-@tag = $p->getbytoken();
+@tag = $p->getbytoken(1);
 if ($tag[0] eq "<!--- <br> ------>" && $tag[1] eq "!--" && $tag[2] == 5){
 	print "ok $i\n";
 }else{
@@ -167,7 +167,7 @@ if ($tag[0] eq "<!--- <br> ------>" && $tag[1] eq "!--" && $tag[2] == 5){
 }
 $i++;
 
-@tag = $p->getbytoken();
+@tag = $p->getbytoken(1);
 if ($tag[0] eq "\n \n" && $tag[1] eq "" && $tag[2] == 5){
 	print "ok $i\n";
 }else{
@@ -175,7 +175,7 @@ if ($tag[0] eq "\n \n" && $tag[1] eq "" && $tag[2] == 5){
 }
 $i++;
 
-@tag = $p->getbytoken();
+@tag = $p->getbytoken(1);
 if ($tag[0] eq "<ende>" && $tag[1] eq "ende" && $tag[2] == 7){
 	print "ok $i\n";
 }else{
@@ -183,7 +183,7 @@ if ($tag[0] eq "<ende>" && $tag[1] eq "ende" && $tag[2] == 7){
 }
 $i++;
 
-@tag = $p->getbytoken();
+@tag = $p->getbytoken(1);
 if ($tag[0] eq "\n" && $tag[1] eq "" && $tag[2] == 7){
 	print "ok $i\n";
 }else{
@@ -191,7 +191,7 @@ if ($tag[0] eq "\n" && $tag[1] eq "" && $tag[2] == 7){
 }
 $i++;
 
-unless (@tag = $p->getbytoken()){
+unless (@tag = $p->getbytoken(1)){
 	print "ok $i\n";
 }else{
 	print "nok $i (@tag)\n";
