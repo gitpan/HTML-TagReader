@@ -1,0 +1,39 @@
+This module is similar to while(<>) but instead of reading lines 
+it reads tags or tags and text.
+
+To install run:
+perl Makefile.PL
+make
+make test
+make install
+
+The subdirectory bin contains 3 applications of Tagreader:
+blck -- check for broken relative links in html pages
+llnk -- list links in html files
+xlnk -- expand links on directories
+
+httpcheck -- check if a particular web-pages exists
+             httpcheck does not directyl use the Tagreader module
+             but may be used as post processor for blck   
+             If you are interessted in a link checker to check
+             links only via the web-server then this is not the
+             right program for you. Other programs like e.g curl 
+             (http://curl.haxx.nu/ or http://curl.haxx.se/)
+             can be used if you want to check your web-pages only 
+             remotely via a web server. curl comes with a dead link 
+             checker called checklinks.pl.
+
+Note the primary desing goal of Tagreader is to provide a fast
+way of reading html file. 
+
+These will normally be install to /usr/bin/
+
+------------------------------------
+Author: guido(at)linuxfocus.org
+
+Homepage: http://linuxfocus.org/~guido/
+
+Copyright: GPL
+
+Installation requirements: Perl 5 and a c-compiler (e.g gcc)
+------------------------------------

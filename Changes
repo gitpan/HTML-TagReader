@@ -1,0 +1,13 @@
+Revision history for Perl extension Tagreader.
+
+0.01  Tue Oct  2 23:38:11 2001
+	- original version; created by h2xs 1.19
+
+0.02  Sun Jul 7 15:55:51 CEST 2002
+       - added blck as example program
+
+0.03  Sun Jul 14 16:59:41 CEST 2002
+       - first public version
+
+0.04  Mon Jul 15 18:55:10 MET DST 2002
+       - changed name space to HTML::Tagreader
