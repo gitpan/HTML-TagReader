@@ -1,3 +1,4 @@
+#!/usr/bin/perl
 use Config;
 # vim: set sw=4 ts=4 si et:
 use File::Basename qw(basename dirname);
@@ -11,8 +12,8 @@ chmod(0755, $file);
 print "Extracting $file (with variable substitutions)\n";
 
 my $VERSION="unknown";
-if (-r "../Tagreader.pm"){ # get version
-    open(F,"../Tagreader.pm")||die;
+if (-r "../TagReader.pm"){ # get version
+    open(F,"../TagReader.pm")||die;
     while(<F>){
         if (/\$VERSION *= *(.+)/){
             $VERSION=$1;
@@ -46,7 +47,6 @@ sub help();
 #------------------
 my @udat;
 my @proxy;
-my $version="2.9b";
 my @noproxy;
 my %cache; # check repleated urls only once
 my $proxyvalid=0;
@@ -358,7 +358,7 @@ The format of the http_proxy variable looks like \"http://www-proxy:8080/\"
 and the no_proxy is a comma or space seperated list of servers or domains
 for which a direct connection should be made.
 \n";
-print "Version: $version\n";
+print "Version: $VERSION\n";
     exit;
 }
 #------------------
@@ -379,13 +379,13 @@ of absolute linke of the type http://....
 
 =head1 OPTIONS
 
--h this help
+ -h this help
 
--e print only results if an error was found
+ -e print only results if an error was found
 
--E Like -e but print a . for every checked url.
+ -E Like -e but print a . for every checked url.
 
--s print result in short format without the URL
+ -s print result in short format without the URL
 
 If no URL is given then httpcheck reads output from 
 \"blck -a\" on stdin and processes it. 
@@ -399,7 +399,7 @@ httpcheck http://www.oche.de/
 
 check many URLs extracted with blck
 from web pages:
-blck -a *.html |  httpcheck -E
+ blck -a *.html |  httpcheck -E
 
 =head1 ENVIRONMENT
 
@@ -412,7 +412,7 @@ for which a direct connection should be made.
 
 =head1 AUTHOR
 
-httpcheck is part of the Tagreader package and was written by
+httpcheck is part of the HTML::TagReader package and was written by
 Guido Socher [guido(at)linuxfocus.org]
 
 =cut

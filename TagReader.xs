@@ -21,7 +21,7 @@ typedef struct trstuct{
 	char buffer[BUFFLEN + 1];
 	char tagtype[TAGREADER_TAGTYPELEN + 1];
 	FILE *fd;
-} *HTML__Tagreader;
+} *HTML__TagReader;
 
 /* start of a html tag (first char in the tag) */
 static inline int is_start_of_tag(int ch){
@@ -31,9 +31,9 @@ static inline int is_start_of_tag(int ch){
 	return(0);
 }
 
-MODULE = HTML::Tagreader	PACKAGE = HTML::Tagreader	PREFIX = tr_	
+MODULE = HTML::TagReader	PACKAGE = HTML::TagReader	PREFIX = tr_	
 
-HTML::Tagreader 
+HTML::TagReader 
 tr_new(class, filename)
 	SV *class
 	SV *filename
@@ -62,7 +62,7 @@ OUTPUT:
 
 void
 DESTROY(self)
-	HTML::Tagreader self
+	HTML::TagReader self
 CODE:
 	Safefree(self->filename);
 	fclose(self->fd);
@@ -70,7 +70,7 @@ CODE:
 
 void
 tr_gettag(self,showerrors)
-	HTML::Tagreader self
+	HTML::TagReader self
 	SV *showerrors
 PREINIT:
 	int bufpos;
@@ -179,7 +179,7 @@ PPCODE:
 	}
 	/* put back chn for the next round */
 	if (chn!=EOF && ungetc(chn,self->fd)==EOF){
-		fprintf(stderr,"%s:%d: ERROR, Tagreader library can not ungetc \"%c\" before returning\n",self->filename,self->fileline,chn);
+		fprintf(stderr,"%s:%d: ERROR, TagReader library can not ungetc \"%c\" before returning\n",self->filename,self->fileline,chn);
 		exit(1);
 	}
 	/* terminate buffer*/
@@ -205,7 +205,7 @@ PPCODE:
 
 void
 tr_getbytoken(self,showerrors)
-	HTML::Tagreader self
+	HTML::TagReader self
 	SV *showerrors
 PREINIT:
 	int bufpos;
@@ -292,7 +292,7 @@ PPCODE:
 					/* put the start of tag back, we want to
 					* return only the text part */
 					if (ungetc(chn,self->fd)==EOF){
-						fprintf(stderr,"%s:%d: ERROR, Tagreader library can not ungetc \"%c\"\n",self->filename,self->fileline,chn);
+						fprintf(stderr,"%s:%d: ERROR, TagReader library can not ungetc \"%c\"\n",self->filename,self->fileline,chn);
 						exit(1);
 					}
 					chn=ch;
@@ -343,7 +343,7 @@ PPCODE:
 	}else{
 		/* put back chn for the next round */
 		if (ungetc(chn,self->fd)==EOF){
-			fprintf(stderr,"%s:%d: ERROR, Tagreader library can not ungetc \"%c\" before returning\n",self->filename,self->fileline,chn);
+			fprintf(stderr,"%s:%d: ERROR, TagReader library can not ungetc \"%c\" before returning\n",self->filename,self->fileline,chn);
 			exit(1);
 		}
 	}

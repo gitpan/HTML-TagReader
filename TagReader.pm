@@ -1,4 +1,4 @@
-package HTML::Tagreader;
+package HTML::TagReader;
 
 use strict;
 use vars qw($VERSION @ISA);
@@ -6,9 +6,9 @@ use vars qw($VERSION @ISA);
 require DynaLoader;
 
 @ISA = qw(DynaLoader);
-$VERSION = '0.05';
+$VERSION = '0.07';
 
-bootstrap HTML::Tagreader $VERSION;
+bootstrap HTML::TagReader $VERSION;
 
 1;
 __END__
@@ -16,13 +16,13 @@ __END__
 
 =head1 NAME
 
-Tagreader - Perl extension module for reading html/sgml/xml tags
+TagReader - Perl extension module for reading html/sgml/xml tags
 
 =head1 SYNOPSIS
 
-  use HTML::Tagreader;
+  use HTML::TagReader;
   # open then file and get an obj-ref:
-  my $p=new HTML::Tagreader "filename";
+  my $p=new HTML::TagReader "filename";
 
   # set to zero or undef to omit warnings about html error:
   $showerrors=1; 
@@ -48,8 +48,8 @@ it reads tags or tags and text.
 Here is a program that list all href tags
 in a html file together with it line numbers:
 
-	use Tagreader;
-	my $p=new Tagreader "file.html";
+	use TagReader;
+	my $p=new TagReader "file.html";
 	my @tag;
 	while(@tag = $p->gettag(1)){
 		if ($tag[0]=~/ href ?=/i){
@@ -62,8 +62,8 @@ in a html file together with it line numbers:
 Here is a program that will read a html file tag
 wise:
 
-	use Tagreader;
-	my $p=new Tagreader "file.html";
+	use TagReader;
+	my $p=new TagReader "file.html";
 	my @tag;
 	while(@tag = $p->getbytoken(1)){
 		if ($tag[1] eq ""){
@@ -73,9 +73,9 @@ wise:
 		}
 	}
 
-=head2 new HTML::Tagreader $file;
+=head2 new HTML::TagReader $file;
 
-Returns a reference to a Tagreader object. This reference can
+Returns a reference to a TagReader object. This reference can
 be used with gettag() or getbytoken() to read the next tag.
 
 =head2 gettag($showerrors);
@@ -136,7 +136,7 @@ No text must be longer than 7k without some kind
 of tag inbetween.
 
 If you need a more sophisticated interface you might want to take a look at
-HTML::Parser. HTML:Tagreader is fast generic and straight forward to use.
+HTML::Parser. HTML:TagReader is fast generic and straight forward to use.
 
 =head1 COPYRIGHT
 

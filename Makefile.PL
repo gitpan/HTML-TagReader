@@ -4,8 +4,8 @@ use ExtUtils::MakeMaker;
 my @programs_to_install = qw(blck xlnk llnk httpcheck);
 
 WriteMakefile(
-    'NAME'	=> 'HTML::Tagreader',
-    'VERSION_FROM' => 'Tagreader.pm', # finds $VERSION
+    'NAME'	=> 'HTML::TagReader',
+    'VERSION_FROM' => 'TagReader.pm', # finds $VERSION
     'PL_FILES'  => { map {("bin/$_.PL" => "bin/$_")} @programs_to_install },
     'EXE_FILES' => [ map {"bin/$_"} @programs_to_install ],
     'clean'     => { FILES => '$(EXE_FILES)' },

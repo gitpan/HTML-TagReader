@@ -1,3 +1,4 @@
+#!/usr/bin/perl
 use Config;
 # vim: set sw=4 ts=4 si et:
 use File::Basename qw(basename dirname);
@@ -11,8 +12,8 @@ chmod(0755, $file);
 print "Extracting $file (with variable substitutions)\n";
 
 my $VERSION="unknown";
-if (-r "../Tagreader.pm"){ # get version
-    open(F,"../Tagreader.pm")||die;
+if (-r "../TagReader.pm"){ # get version
+    open(F,"../TagReader.pm")||die;
     while(<F>){
         if (/\$VERSION *= *(.+)/){
             $VERSION=$1;
@@ -32,16 +33,17 @@ print OUT <<'!NO!SUBS!';
 # Copyright: GPL, Author: Guido Socher
 #
 use strict;
-use vars qw($opt_i $opt_h $opt_v);
+use vars qw($opt_p $opt_i $opt_h $opt_v);
 use Getopt::Std;
-use HTML::Tagreader;
+use HTML::TagReader;
+use IO::Handle;
 #
 sub help();
 sub expandonefile($$);
 sub dirname($);
 sub linktype($);
 #
-getopts("hv:i:")||die "ERROR: No such option. -h for help.\n";
+getopts("hpv:i:")||die "ERROR: No such option. -h for help.\n";
 help() if ($opt_h);
 help() unless ($ARGV[0]);
 
@@ -61,20 +63,27 @@ if ($opt_i){
 my $mode;
 for my $f (@ARGV){
     if ( -r "$f" ){
-        $mode=(stat(_))[2];
-        rename($f,"$f.xlnk")||die "ERROR: can not rename $f to $f.xlnk, check directory permissions.\n";
-        $changecount=expandonefile("$f.xlnk",$f);
-        if ($verbous>=1){
-            print "$f:1: $changecount links changed\n";
-        }
-        if ($changecount){
-            chmod($mode,$f)||die "ERROR: chmod %o $f failed\n";
-            unlink("$f.xlnk")||die "ERROR: unlink $f.xlnk failed\n";;
+        if ($opt_p){
+            $changecount=expandonefile("$f","/tmp/none");
+            if ($verbous>=1){
+                print STDERR "$f:1: $changecount links changed\n";
+            }
         }else{
-            # nothing changed restore the old file and do not change
-            # modification time
-            unlink("$f");
-            rename("$f.xlnk",$f)||die "ERROR: can not rename $f.xlnk to $f, check directory permissions.\n";
+            $mode=(stat(_))[2];
+            rename($f,"$f.xlnk")||die "ERROR: can not rename $f to $f.xlnk, check directory permissions.\n";
+            $changecount=expandonefile("$f.xlnk",$f);
+            if ($verbous>=1){
+                print STDERR "$f:1: $changecount links changed\n";
+            }
+            if ($changecount){
+                chmod($mode,$f)||die "ERROR: chmod %o $f failed\n";
+                unlink("$f.xlnk")||die "ERROR: unlink $f.xlnk failed\n";;
+            }else{
+                # nothing changed restore the old file and do not change
+                # modification time
+                unlink("$f");
+                rename("$f.xlnk",$f)||die "ERROR: can not rename $f.xlnk to $f, check directory permissions.\n";
+            }
         }
     }else{
         warn "ERROR: can not read $f\n";
@@ -91,8 +100,14 @@ sub expandonefile($$){
     my $linktype; # one of: name href src background
     my ($origtag,$ckpath,$path,$dir,$ltype,$origpath,$line,$found,$v);
 
-    my $p=new HTML::Tagreader "$infile";
-    open(OUT,">$outfile")||die "ERROR: can not write $outfile\n";
+    my $p=new HTML::TagReader "$infile";
+    my $fd_out=new IO::Handle;
+    unless($opt_p){
+        open(OUT,">$outfile")||die "ERROR: can not write $outfile\n";
+        $fd_out->fdopen(fileno(OUT),"w")||die;
+    }else{
+        $fd_out->fdopen(fileno(STDOUT),"w")||die "ERROR: can not write to stdout\n";
+    }
     $v=0;
     if ($verbous>=2){
         $v=1;
@@ -105,12 +120,12 @@ sub expandonefile($$){
         $origtag=$tag[0];
         if($tag[1] eq "" || $tag[1] eq "!--"){
             # not a tag or a comment
-            print OUT $origtag;
+            $fd_out->print($origtag);
             next;
         } 
         # we search for " href", " src", " background": 
         unless($tag[0]=~/\ssrc|\shref|\sbackground/i){
-            print OUT $origtag;
+            $fd_out->print($origtag);
             next;
         } 
         $line=$tag[2];
@@ -125,22 +140,22 @@ sub expandonefile($$){
             $ltype=linktype($path);
         }else{
             print STDERR "$infile:$line: Warning, invalid link in tag $tag[0]\n" if ($verbous >=2);
-            print OUT $origtag;
+            $fd_out->print($origtag);
             next;
         }
         #---
         unless ($ltype eq 'rel' ){
-            print OUT $origtag;
+            $fd_out->print($origtag);
             next;
         }
         if ($path=~/[\?\#]/){ # some anchor or php stuff-> not a directory
-            print OUT $origtag;
+            $fd_out->print($origtag);
             next;
         }
         $dir=dirname($infile);
         $ckpath="$dir/$path";
         if ( -f "$ckpath"){
-            print OUT $origtag;
+            $fd_out->print($origtag);
             next;
         }
         if ( -d "$ckpath"){
@@ -165,13 +180,13 @@ sub expandonefile($$){
                 # change the link;
                 my $pos=index($tag[0],"$linktype=$origpath",0);
                 if ($pos){
-                    print "$infile:$line: expanding $linktype=$origpath -> $linktype=\"$path\"\n" if ($verbous >= 3);
+                    print STDERR "$infile:$line: expanding $linktype=$origpath -> $linktype=\"$path\"\n" if ($verbous >= 3);
                     substr($tag[0],$pos,length("$linktype=$origpath"))="$linktype=\"$path\"";
                     $count++;
                 }else{
                     print STDERR "$infile:$line: PROGRAM ERROR, \"$tag[0]\" does not contain \"$linktype=$origpath\"\n" if ($verbous>=1);
                 }
-                print OUT $tag[0];
+                $fd_out->print($tag[0]);
                 next;
             }else{
                 print STDERR "$infile:$line: Warning, broken link $linktype=$origpath, can not find index file.\n" if ($verbous >=2);
@@ -179,9 +194,9 @@ sub expandonefile($$){
         }else{
             print STDERR "$infile:$line: Warning, broken link $linktype=$origpath\n" if ($verbous >=2);
         }
-        print OUT $origtag;
+        $fd_out->print($origtag);
     }
-    close OUT;
+    $fd_out->close;
     return($count);
 }
 #----------------------------------
@@ -219,7 +234,7 @@ sub linktype($){
 sub help(){
 print "xlnk -- expand links on directories
 
-USAGE: xlnk [-h] [-v level] [-i fname-list] html-files
+USAGE: xlnk [-hp] [-v level] [-i fname-list] html-files
 
 xlnk opens all files listed on the command line and
 searches for realtive links on directories. These links
@@ -238,6 +253,8 @@ OPTIONS:
      index.html,index.htm,index.shtml,default.htm,index.php3,
      index.php,index.wml
 
+     -p print to stdout and do not modify any files.
+
      -v verbosity. Number between 0-3. Print information on what is done.
      Default is 1.
 
@@ -253,7 +270,7 @@ xlnk -- process html files and expand links on directories
 
 =head1 SYNOPSIS
 
-    xlnk [-h] [-v level] [-i fname-list] html-files
+    xlnk [-hp] [-v level] [-i fname-list] html-files
 
 =head1 DESCRIPTION
 
@@ -275,6 +292,8 @@ for. Default is:
 index.html,index.htm,index.shtml,default.htm,index.php3,
 index.php,index.wml
 
+-p print to stdout and do not modify any files.
+
 -v verbosity. Number between 0-3. Print information on what is done.
 Default is 1.
 
@@ -289,7 +308,7 @@ E.g href="../" would become href="../index.html" if index.html exists.
 
 =head1 AUTHOR
 
-xlnk is part of the Tagreader package and was written by
+xlnk is part of the HTML::TagReader package and was written by
 Guido Socher [guido(at)linuxfocus.org]
 
 =cut

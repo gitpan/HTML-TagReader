@@ -8,7 +8,7 @@
 
 BEGIN { $| = 1; print "1..21\n"; }
 END {print "nok ok 1\n" unless $loaded;}
-use Tagreader;
+use TagReader;
 $loaded = 1;
 print "ok 1\n";
 
@@ -23,7 +23,7 @@ print OUT "<a href=\"http://linuxfocus.org\">\n";
 print OUT "<!-- <br> ------>\n";
 close OUT;
 
-my $ptr=new HTML::Tagreader "/tmp/pltest.$$";
+my $ptr=new HTML::TagReader "/tmp/pltest.$$";
 my $i=2;
 my $tmp=$ptr->gettag(0);
 if ($tmp eq "<tag 1>"){
@@ -83,7 +83,7 @@ print OUT "<a href=\"http://linuxfocus.org\">\n";
 print OUT "<!--- <br> ------>\n \n<ende>\n";
 close OUT;
 
-my $p=new HTML::Tagreader "/tmp/pltest_getbytoken.$$";
+my $p=new HTML::TagReader "/tmp/pltest_getbytoken.$$";
 #7
 @tag = $p->getbytoken("x");
 if ($tag[0] eq "<bla a=x>" && $tag[1] eq "bla" && $tag[2] == 1){
@@ -206,7 +206,7 @@ my $entirefile="<bla a=x> < <tag \t\n1>\n<!DOCTYPE xx><TITLE>The web</TITLE>\n";
 print OUT $entirefile;
 close OUT;
 
-$p=new HTML::Tagreader "/tmp/pltest_getbytoken2.$$";
+$p=new HTML::TagReader "/tmp/pltest_getbytoken2.$$";
 
 my $readfile="";
 while(@tag = $p->getbytoken(0)){

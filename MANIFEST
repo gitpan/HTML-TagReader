@@ -1,5 +1,5 @@
-Tagreader.xs
-Tagreader.pm
+TagReader.xs
+TagReader.pm
 Makefile.PL
 test.pl
 Changes

@@ -1,3 +1,4 @@
+#!/usr/bin/perl
 use Config;
 # vim: set sw=4 ts=4 si et:
 use File::Basename qw(basename dirname);
@@ -11,8 +12,8 @@ chmod(0755, $file);
 print "Extracting $file (with variable substitutions)\n";
 
 my $VERSION="unknown";
-if (-r "../Tagreader.pm"){ # get version
-    open(F,"../Tagreader.pm")||die;
+if (-r "../TagReader.pm"){ # get version
+    open(F,"../TagReader.pm")||die;
     while(<F>){
         if (/\$VERSION *= *(.+)/){
             $VERSION=$1;
@@ -32,19 +33,26 @@ print OUT <<'!NO!SUBS!';
 # Copyright: GPL, Author: Guido Socher
 #
 use strict;
-use vars qw($opt_l $opt_a $opt_h $opt_A $opt_W);
+use vars qw($opt_l $opt_a $opt_h $opt_A $opt_W $opt_i);
 use Getopt::Std;
-use HTML::Tagreader;
+use HTML::TagReader;
 #
 sub help();
 sub showonefile($);
 sub linktype($);
+sub dirname($);
 #
-getopts("haAlW")||die "ERROR: No such option. -h for help.\n";
+my @possibilities= qw(index.html index.htm index.shtml default.htm index.php3 index.php index.wml);
+my %killduplicate;
+#
+getopts("haAlWi:")||die "ERROR: No such option. -h for help.\n";
 help() if ($opt_h);
 help() unless ($ARGV[0]);
 if ($opt_a){
     $opt_l=1;
+}
+if ($opt_i){
+    @possibilities=split(/,/,$opt_i);
 }
 
 for my $f (@ARGV){
@@ -61,9 +69,9 @@ sub showonefile($){
     my $infile=shift;
     my @tag;
     my $linktype; # one of: name href src background
-    my ($waitclosetag,$origtag,$aline,$atag,$path,$tmp,$ltype,$line,$waitcount);
+    my ($waitclosetag,$origtag,$aline,$atag,$path,$tmp,$ltype,$line,$waitcount,$dir,$ckpath);
 
-    my $p=new HTML::Tagreader "$infile";
+    my $p=new HTML::TagReader "$infile";
     print "$infile\n" unless($opt_l);
     $waitclosetag=0;
     $waitcount=0;
@@ -131,12 +139,77 @@ sub showonefile($){
                 if ($opt_l){
                     print "$infile:$line: $tag[0]\n";
                 }else{
-                    print "$path\n";
+                    # chop off the anchors unless -l was given:
+                    # index.html#chapter1 should be index.html otherwise
+                    # we can not use it with tar:
+                    $path=~s/\#.*$//;
+                    # now try to expand links on directories with
+                    # the appropriate index file:
+                    $dir=dirname($infile);
+                    $ckpath="$dir/$path";
+                    if ( -f "$ckpath"){
+                        # not a directory:
+                        # change xxx/./yy/a -> xxx/yy/a 
+                        $ckpath=~s!/\./!/!g;
+                        # change ./yy/a -> yy/a
+                        $ckpath=~s!^\./!!g;
+                        print "$ckpath\n" unless($killduplicate{$ckpath});
+                        $killduplicate{$ckpath}=1;
+                        next;
+                    }
+                    my $found =0;
+                    if ( -d "$ckpath"){
+                        # remove optional '/'
+                        $path=~s/\/$//;
+                        if ($path eq "."){ # remove single '.'
+                            $ckpath=$dir;
+                            $path="";
+                        }else{
+                            $ckpath="$dir/$path";
+                        }
+                        for my $i (@possibilities){
+                            if ( -f "$ckpath/$i"){
+                                # found:
+                                $ckpath="$ckpath/$i";
+                                # change xxx/./yy/a -> xxx/yy/a 
+                                $ckpath=~s!/\./!/!g;
+                                # change ./yy/a -> yy/a
+                                $ckpath=~s!^\./!!g;
+                                print "$ckpath\n" unless($killduplicate{$ckpath});
+                                $killduplicate{$ckpath}=1;
+                                $found=1;
+                                last;
+                            }
+                        }
+                    }
+                    if(!$found){
+                        if ($ltype eq 'rel'){
+                            # change ./yy/a -> yy/a
+                            $ckpath="$dir/$path";
+                            $ckpath=~s!^\./!!g;
+                            print "$ckpath\n" unless($killduplicate{"$ckpath"});
+                            $killduplicate{"$ckpath"}=1;
+                        }else{
+                            print "$path\n" unless($killduplicate{$path});
+                            $killduplicate{$path}=1;
+                        }
+                    }
                 }
             }
         }else{
             print STDERR "$infile:$line: Warning, broken link $tag[0]\n" unless($opt_W);
         }
+    }
+}
+#----------------------------------
+# get the directory name from file name
+sub dirname($){
+    my $f=shift;
+    if ($f=~m=/=){
+        $f=~s=/[^/]*$==;
+        return("$f");
+    }else{
+        return(".");
     }
 }
 #----------------------------------
@@ -163,7 +236,7 @@ sub linktype($){
 sub help(){
 print "llnk -- list links in html files
 
-USAGE: llnk [-h] [-AalW] html-files
+USAGE: llnk [-h] [-AalW] [-i fname-list] html-files
 
 Without option -A llnk will list only relative links.
 The idea of this program is that you run 
@@ -184,6 +257,15 @@ OPTIONS:
 
          -A list all href=...,  src=..., and background=... tags
          whether they are relative or not.
+
+         -i index list. llnk expands links on directories when possible
+         by adding the default index file. E.g \"href=../\" becomes
+         \"href=../index.html\". This option specifies the search order
+         for the index file. It is a comma seperated list of files.
+         Default (without this option):
+         index.html,index.htm,index.shtml,default.htm,index.php3,
+         index.php,index.wml
+         Note that this option is not relevant if -l or -a was specified.
 
          -l print with filename, line number and entire tag. Note that errors
          and warnings are always printed with filename and line numbers.
@@ -214,7 +296,7 @@ llnk -- list links in html files
 
 =head1 SYNOPSIS
 
-USAGE: llnk [-h] [-AalW] html-files
+USAGE: llnk [-h] [-AalW] [-i fname-list] html-files
 
 =head1 DESCRIPTION
 
@@ -239,6 +321,15 @@ more to look at the links of a web page.
 -A list all href=...,  src=..., and background=... tags
 whether they are relative or not.
 
+-i index list. llnk expands links on directories when possible
+by adding the default index file. E.g "href=../" becomes
+"href=../index.html". This option specifies the search order
+for the index file. It is a comma seperated list of files.
+Default (without this option):
+index.html,index.htm,index.shtml,default.htm,index.php3,
+index.php,index.wml
+Note that this option is not relevant if -l or -a was specified.
+
 -l print with filename, line number and entire tag. Note that errors
 and warnings are always printed with filename and line numbers.
 If -l is given then the file names from the command line are
@@ -259,7 +350,7 @@ llnk -Al something.html
 
 =head1 AUTHOR
 
-xlnk is part of the Tagreader package and was written by
+xlnk is part of the HTML::TagReader package and was written by
 Guido Socher [guido(at)linuxfocus.org]
 
 =cut

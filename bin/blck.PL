@@ -1,3 +1,4 @@
+#!/usr/bin/perl
 use Config;
 # vim: set sw=4 ts=4 si et:
 use File::Basename qw(basename dirname);
@@ -11,8 +12,8 @@ chmod(0755, $file);
 print "Extracting $file (with variable substitutions)\n";
 
 my $VERSION="unknown";
-if (-r "../Tagreader.pm"){ # get version
-    open(F,"../Tagreader.pm")||die;
+if (-r "../TagReader.pm"){ # get version
+    open(F,"../TagReader.pm")||die;
     while(<F>){
         if (/\$VERSION *= *(.+)/){
             $VERSION=$1;
@@ -33,7 +34,7 @@ print OUT <<'!NO!SUBS!';
 use strict;
 use vars qw($opt_a $opt_r $opt_W $opt_A $opt_h);
 use Getopt::Std;
-use HTML::Tagreader;
+use HTML::TagReader;
 #
 sub help();
 sub checkonefile($$);
@@ -87,7 +88,7 @@ sub checkonefile_nameonly($){
     my @tag;
     my ($path,$line);
 
-    my $p=new HTML::Tagreader "$file";
+    my $p=new HTML::TagReader "$file";
     $checkedfiles{"$file"}=1;
     while(@tag = $p->gettag(!$opt_W)){
         # read out the tags, note something like: 
@@ -118,7 +119,7 @@ sub checkonefile($$){
     my $tagtype; # one of: name href src background
     my ($ckpath,$path,$ltype,$dir,$line,$origpath);
 
-    my $p=new HTML::Tagreader "$file";
+    my $p=new HTML::TagReader "$file";
     $checkedfiles{"$file"}=1;
     while(@tag = $p->gettag(!$opt_W)){
         # read out the tags, note something like: 
@@ -387,7 +388,7 @@ all:
 
 =head1 AUTHOR
 
-xlnk is part of the Tagreader package and was written by
+xlnk is part of the HTML::TagReader package and was written by
 Guido Socher [guido(at)linuxfocus.org]
 
 
