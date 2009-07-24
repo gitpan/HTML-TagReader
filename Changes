@@ -119,4 +119,6 @@ Revision history for Perl extension HTML::TagReader.
     - improved flattenpath subroutine in tr_llnk
     - setenv QUERY_STRING in tr_staticssi
 
+1.10 Wed Dec  7 19:25:06 CET 2005
+    - man-page editorial update
 # end of changes
